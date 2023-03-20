@@ -3,10 +3,12 @@ import { NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 
-import { getUserMask } from '../selector/user.selector';
+import { getError, getUser, getUserMask } from '../selector/user.selector';
 import { State } from '../state/user.reducer';
 import { AuthService } from './auth.service';
 import * as UserAction from '../actions/user.action';
+import { Observable } from 'rxjs';
+import { User } from './user';
 
 @Component({
   templateUrl: './login.component.html',
@@ -15,7 +17,9 @@ import * as UserAction from '../actions/user.action';
 export class LoginComponent implements OnInit {
   pageTitle = 'Log In';
 
-  maskUserName: boolean;
+  maskUserName$: Observable<boolean>;
+  user$: Observable<User | null>;
+  errorMessage$: Observable<string>;
 
   constructor(
     private authService: AuthService,
@@ -25,18 +29,10 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
 
-    // 1st option;
+    this.user$ = this.store.select(getUser);
+    this.errorMessage$ = this.store.select(getError);
 
-    // this.store.select('users').subscribe(users => {
-    //   this.maskUserName = users.maskUser;
-    // });
-
-    // 2nd Option
-
-    this.store.select(getUserMask).subscribe(maskUser => {
-      this.maskUserName = maskUser;
-    });
-
+    this.maskUserName$ = this.store.select(getUserMask);
 
   }
 
@@ -46,7 +42,6 @@ export class LoginComponent implements OnInit {
 
   checkChanged(): void {
     this.store.dispatch(UserAction.maskUser());
-    // this.maskUserName = !this.maskUserName;
   }
 
   login(loginForm: NgForm): void {
@@ -55,8 +50,13 @@ export class LoginComponent implements OnInit {
     if (loginForm && loginForm.valid) {
       const userName = loginForm.form.value.userName;
       const password = loginForm.form.value.password;
-      // this.store.dispatch(UserAction.login({ user: { userName, password } }));
-      this.authService.login(userName, password);
+
+      const user = {
+        userName,
+        password
+      }
+
+      this.store.dispatch(UserAction.login({ user }));
 
       if (this.authService.redirectUrl) {
         this.router.navigateByUrl(this.authService.redirectUrl);

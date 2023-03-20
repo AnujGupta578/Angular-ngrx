@@ -31,13 +31,6 @@ export const userReducer = createReducer<UserState>(
         };
     }),
 
-    // on(UserAction.login, (state, action): UserState => {
-    //     return {
-    //         ...state,
-            
-    //     };
-    // }),
-
     on(UserAction.loginSuccess, (state, action): UserState => {
         return {
             ...state,

@@ -13,3 +13,8 @@ export const getUser = createSelector(
     getUserFeatureState,
     state => state.currentUser
 );
+
+export const getError = createSelector(
+    getUserFeatureState,
+    state => state.loginError
+);

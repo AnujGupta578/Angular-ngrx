@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import * as ProductActions from 'src/app/actions/products.action';
 
 import { getCurrentProduct } from '../../selector/product.selector';
@@ -20,13 +21,13 @@ export class ProductEditComponent implements OnInit, OnDestroy {
   errorMessage = '';
   productForm: FormGroup;
 
-  product: Product | null;
   sub: Subscription;
 
   // Use with the generic validation message class
   displayMessage: { [key: string]: string } = {};
   private validationMessages: { [key: string]: { [key: string]: string } };
   private genericValidator: GenericValidator;
+  product$: Observable<Product | null>;
 
   constructor(
     private fb: FormBuilder,
@@ -69,9 +70,9 @@ export class ProductEditComponent implements OnInit, OnDestroy {
     //   currentProduct => this.displayProduct(currentProduct)
     // );
 
-    this.store.select(getCurrentProduct).subscribe(currentProduct => {
+    this.product$ = this.store.select(getCurrentProduct).pipe(tap(currentProduct => {
       this.displayProduct(currentProduct);
-    });
+    }));
 
     // Watch for value changes for validation
     this.productForm.valueChanges.subscribe(
@@ -90,9 +91,6 @@ export class ProductEditComponent implements OnInit, OnDestroy {
   }
 
   displayProduct(product: Product | null): void {
-    // Set the local product property
-    this.product = product;
-
     if (product) {
       // Reset the form back to pristine
       this.productForm.reset();
@@ -147,15 +145,16 @@ export class ProductEditComponent implements OnInit, OnDestroy {
         if (product.id === 0) {
           this.productService.createProduct(product).subscribe({
             // next: p => this.productService.changeSelectedProduct(p),
-            next: p => this.store.dispatch(ProductActions.setCurrentProduct({ product: p })),
+            next: p => this.store.dispatch(ProductActions.setCurrentProduct({ currentProductId: p.id })),
             error: err => this.errorMessage = err
           });
         } else {
-          this.productService.updateProduct(product).subscribe({
-            next: p => this.store.dispatch(ProductActions.setCurrentProduct({ product: p })),
-            // next: p => this.productService.changeSelectedProduct(p),
-            error: err => this.errorMessage = err
-          });
+          this.store.dispatch(ProductActions.updateProduct({ product }));
+          // this.productService.updateProduct(product).subscribe({
+          //   next: p => this.store.dispatch(ProductActions.setCurrentProduct({ currentProductId: p.id })),
+          //   // next: p => this.productService.changeSelectedProduct(p),
+          //   error: err => this.errorMessage = err
+          // });
         }
       }
     }
